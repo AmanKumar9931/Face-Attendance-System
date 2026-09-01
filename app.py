@@ -31,40 +31,46 @@ EMAIL_CONFIG = {
 }
 
 # Admin credentials from environment (fallback to defaults for development)
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "aman")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "aman9931")
 ADMIN_PASSWORD_HASH = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
 
 # ─── Database Setup ───────────────────────────────────────────────
 def init_db():
-    if DB_PATH.startswith("sqlite"):
-        os.makedirs("database", exist_ok=True)
-    conn = sqlite3.connect(DB_PATH.replace("sqlite:///", "") if DB_PATH.startswith("sqlite") else DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS attendance (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            reg_no TEXT,
-            roll_no TEXT,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            status TEXT DEFAULT 'Present',
-            confidence REAL DEFAULT 0
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            reg_no TEXT,
-            roll_no TEXT,
-            email TEXT,
-            registered_at TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    try:
+        if DB_PATH.startswith("sqlite"):
+            os.makedirs("database", exist_ok=True)
+        db_path = DB_PATH.replace("sqlite:///", "") if DB_PATH.startswith("sqlite") else DB_PATH
+        conn = sqlite3.connect(db_path)
+        conn.timeout = 10  # Add timeout to prevent hanging
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                reg_no TEXT,
+                roll_no TEXT,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                status TEXT DEFAULT 'Present',
+                confidence REAL DEFAULT 0
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                reg_no TEXT,
+                roll_no TEXT,
+                email TEXT,
+                registered_at TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        print("✓ Database initialized successfully")
+    except Exception as e:
+        print(f"⚠ Database initialization error: {e}")
 
 # ─── Face Data Helpers ────────────────────────────────────────────
 def load_face_data():
@@ -81,7 +87,7 @@ def save_face_data(data):
 
 def get_db():
     db_path = DB_PATH.replace("sqlite:///", "") if DB_PATH.startswith("sqlite") else DB_PATH
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=10)  # Add timeout
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -862,8 +868,14 @@ def api_stats():
     return jsonify({"total": total, "today": today_count, "users": users_count, "days": days})
 
 if __name__ == "__main__":
-    init_db()
-    port = int(os.environ.get("PORT", 5000))
-    debug_mode = os.environ.get("FLASK_ENV", "development") == "development"
-    print(f"FaceAttend running at http://0.0.0.0:{port} (Debug: {debug_mode})")
-    app.run(debug=debug_mode, host="0.0.0.0", port=port)
+    try:
+        init_db()
+        port = int(os.environ.get("PORT", 5000))
+        host = os.environ.get("FLASK_HOST", "127.0.0.1")  # Changed from 0.0.0.0 to 127.0.0.1
+        debug_mode = os.environ.get("FLASK_ENV", "development") == "development"
+        print(f"🚀 FaceAttend running at http://{host}:{port} (Debug: {debug_mode})")
+        app.run(debug=debug_mode, host=host, port=port, use_reloader=False)
+    except Exception as e:
+        print(f"❌ Startup error: {e}")
+        import traceback
+        traceback.print_exc()
