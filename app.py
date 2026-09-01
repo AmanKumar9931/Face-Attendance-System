@@ -871,7 +871,7 @@ if __name__ == "__main__":
     try:
         init_db()
         port = int(os.environ.get("PORT", 5000))
-        host = os.environ.get("FLASK_HOST", "127.0.0.1")  # Changed from 0.0.0.0 to 127.0.0.1
+        host = os.environ.get("FLASK_HOST", "0.0.0.0")  # Listen on all interfaces for deployment
         debug_mode = os.environ.get("FLASK_ENV", "development") == "development"
         print(f"🚀 FaceAttend running at http://{host}:{port} (Debug: {debug_mode})")
         app.run(debug=debug_mode, host=host, port=port, use_reloader=False)
